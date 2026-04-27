@@ -1,0 +1,23 @@
+# Build artifacts
+*.zip
+*.exe
+*.o
+*.obj
+
+# SSH keys (never commit)
+.ssh_key
+.ssh_key.pub
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temp
+*.tmp
+*.log

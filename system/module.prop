@@ -1,0 +1,6 @@
+id=usb_gps_switcher
+name=USB GPS Switcher
+version=v1.2
+versionCode=3
+author=Custom
+description=车机外置 GPS 切换模块。通过 USB 串口读取 NMEA 数据注入 Android GPS 系统，支持启用/关闭切换内外置 GPS。完整兼容 GNSS 1.0/1.1/2.0/2.1/3.0，支持 Android 10-14。
