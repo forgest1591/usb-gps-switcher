@@ -21,3 +21,13 @@ Thumbs.db
 # Temp
 *.tmp
 *.log
+\
+# Binary patches
+usbgps.orig
+usbgps_patched
+*.orig
+*.patched
+
+# Analysis scripts
+analysis/*.ps1
+*.md5\
