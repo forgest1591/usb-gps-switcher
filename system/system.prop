@@ -1,18 +1,16 @@
-# Magisk system.prop — GPS 相关属性
-# ============================================================
-# UIS7870 平台 GPS 配置
-# ============================================================
+# USB GPS Switcher - System Properties
+# GPS HAL will read from USB GPS module instead of built-in GNSS
 
-# 禁用内置 GPS，使用外置 USB GPS
-persist.sys.usb.gps.mode=external
+# GPS mode - external USB GPS
+persist.vendor.icoe.gps_mode=external
+persist.vendor.icoe.gps_port=/dev/ttyUSB0
+persist.vendor.icoe.gps_baud=460800
 
-# GPS 套接字配置
-# 告诉 Android 位置服务使用外部数据源
-ro.hardware.gps=none
+# Disable internal GPS HAL
+vendor.gnss.disable.hal=true
 
-# 强制使用外置 GPS 源
-location.mode=device_only
+# USB GPS ready (checked by usbgps.rc)
+vendor.usb.gps.ready=0
 
-# 保持屏幕唤醒时启用 GPS（省电）
-location.administrative_area=
-location.locality=
+# Debug
+debug.gps.nmea.output=1

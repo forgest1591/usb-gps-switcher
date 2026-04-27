@@ -1,73 +1,37 @@
 #!/system/bin/sh
-#
-# service.sh — Magisk 模块服务脚本
-# ============================================================
-# 核心逻辑：
-#   - 模块被启用 → auto-start 标记存在 → 启动外置 GPS
-#   - 模块被禁用 → auto-start 标记被删除 → 停止外置 GPS
-#   - 重启后自动恢复上次状态（持久化）
-#
-# auto-start 标记由 enable.sh / disable.sh 管理
-# 兼容 Android 10 / 11 / 12 / 13 / 14
-# ============================================================
+##########################################################################################
+# USB GPS Switcher - Service Script
+# Based on UM982 template - runs after boot, optimizes usbgps process
+##########################################################################################
 
-MODDIR="/data/adb/usb_gps_switcher"
-STATE_FLAG="/data/local/tmp/usb_gps/.external_enabled"
-PID_FILE="/data/local/tmp/usb_gps/pid"
-LOG_TAG="usb_gps_switcher"
+LOGFILE=/data/local/tmp/gnssdrv.log
 
-. "$MODDIR/config.sh"
-
-log() {
-    log -t "$LOG_TAG" -p i "$*"
+logprint() {
+  echo "[SERVICE] $(date) $1" >> $LOGFILE
 }
 
-# ── 延迟启动 (等系统服务就绪) ────────────────────────────
-# Android 10/11 需要更长时间等待系统服务完全启动
-# BOOT_DELAY 在 config.sh 中根据 Android 版本自动设置
+logprint "USB GPS Switcher service starting..."
 
-log "service.sh: 等待系统服务就绪 (${BOOT_DELAY}s)..."
-sleep $BOOT_DELAY
+# 等待 boot 完成
+wait_for_prop dev.bootcomplete 1 60
+BOOT_COMPLETE=$?
 
-# ── 检查 auto-start 状态 ────────────────────────────────
-if [ -f "$STATE_FLAG" ]; then
-    # 模块被启用 → 启动外置 GPS
-    log "service.sh: 检测到 auto-start 标记，启动外置 GNSS"
-    
-    # 停止内置 GNSS
-    stop_internal_gnss
-    
-    # 找到设备
-    USB_DEV=$(find_gnss_device)
-    if [ -n "$USB_DEV" ]; then
-        fix_permissions "$USB_DEV"
-        
-        # 启动桥接
-        if [ -x "$MODDIR/bin/usb_gps_bridge" ]; then
-            "$MODDIR/bin/usb_gps_bridge" -d "$USB_DEV" -b "$BAUD_RATE" &
-        else
-            sh "$MODDIR/bin/usb_gps_shell.sh" "$USB_DEV" "$BAUD_RATE" &
-        fi
-        
-        PID=$!
-        echo $PID > "$PID_FILE"
-        log "外置 GNSS 桥接已启动 PID=$PID"
-    else
-        log "未找到 USB GPS 设备，将在下次检测"
-    fi
-else
-    # 模块被禁用（或首次安装未启用）→ 恢复内置
-    log "service.sh: 无 auto-start 标记，保持内置 GNSS"
-    
-    # 确保外置进程已停止
-    if [ -f "$PID_FILE" ]; then
-        kill $(cat $PID_FILE) 2>/dev/null
-        rm -f "$PID_FILE"
-    fi
-    
-    # 确保内置 GNSS 启动
-    start_internal_gnss
+if [ "$BOOT_COMPLETE" != "0" ]; then
+  logprint "WARNING: Boot complete timeout"
 fi
 
-log "service.sh: 完成"
-exit 0
+# 如果 USB GPS 启用状态存在，设置进程优先级
+if [ -f /data/local/tmp/usb_gps_enabled ]; then
+  PID=$(pidof usbgps 2>/dev/null)
+  if [ -n "$PID" ]; then
+    logprint "Optimizing usbgps process (PID: $PID)..."
+    echo -1000 > /proc/$PID/oom_score_adj 2>/dev/null
+    echo -17 > /proc/$PID/oom_adj 2>/dev/null
+    renice -n -17 -p $PID 2>/dev/null
+    logprint "usbgps process optimized"
+  else
+    logprint "usbgps not running, will start via usbgps.rc"
+  fi
+fi
+
+logprint "Service complete"

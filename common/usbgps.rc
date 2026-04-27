@@ -1,0 +1,22 @@
+# USB GPS Service for UIS7870 Android 13 Head Unit
+# HAL-level GPS replacement - reads NMEA from USB GPS module
+
+on early-boot
+    # 等待 USB GPS 模块就绪
+    wait_for_prop vendor.usb.gps.ready 1 10
+
+    # 启动 USB GPS 守护进程
+    start myusbgps
+
+# USB GPS 模块连接时自动重启服务
+on property:dev.bootcomplete=1
+    start myusbgps
+
+service myusbgps /vendor/bin/usbgps
+    disabled
+    user root
+    group root system
+    seclabel u:r:magisk:s0
+    # 重试间隔 3 秒，优雅退出
+    restart_period 3000
+    oneshot
